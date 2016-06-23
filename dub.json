@@ -1,0 +1,11 @@
+{
+    "name" : "aritheval",
+    "description" : "A minimal D application.",
+    "authors" : ["Héctor Barreras Almarcha @Dechcaudron"],
+
+    "dependencies" : {
+            "pegged": "~>0.3.2"
+    	},
+
+    "targetPath" : "build"
+}
