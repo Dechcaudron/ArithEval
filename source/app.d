@@ -2,5 +2,5 @@ import std.stdio;
 
 void main()
 {
-	writeln("Edit source/app.d to start your project.");
+	writeln("No demo app for you so far, sorry");
 }

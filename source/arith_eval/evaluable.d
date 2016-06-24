@@ -1,8 +1,8 @@
-module aritheval.evaluable;
+module arith_eval.evaluable;
 
 import std.meta : allSatisfy, aliasSeqOf;
 import std.string;
-import std.conv : to;
+import std.conv : to; // for pegged.grammar mixin
 import std.exception;
 
 import pegged.grammar;
@@ -10,26 +10,25 @@ import pegged.grammar;
 mixin(grammar(`
 Arithmetic:
     Whole    < Term ";"
-    Term     < Factor (Add / Sub)*
+    Term     < (Pow / Factor) (Add / Sub)*
     Add      < "+" Factor
     Sub      < "-" Factor
     Factor   < Primary (Mul / Div)*
+    Pow      < Primary "**" Primary
     Mul      < "*" Primary
     Div      < "/" Primary
     Primary  < Parens / Neg / Number / Variable
     Parens   < :"(" Term :")"
     Neg      < "-" Primary
-    Number   <- [0-9]+
+    Number   <- ~(~([0-9]+) ~("." ~([0-9]+))?)
     Variable <- ([a-zA-Z]+) ([a-zA-Z0-9_]*)
 `));
 
-static assert(Arithmetic("2;").successful);
-
 private float eval(string expr)
 {
-    auto p = Arithmetic(expr);
+    import std.math;
 
-    //writeln(p);
+    auto p = Arithmetic(expr);
 
     float value(ParseTree p)
     {
@@ -51,6 +50,8 @@ private float eval(string expr)
                 float v = 1.0;
                 foreach(child; p.children) v *= value(child);
                 return v;
+            case "Arithmetic.Pow":
+                return pow(value(p.children[0]), value(p.children[1]));
             case "Arithmetic.Mul":
                 return value(p.children[0]);
             case "Arithmetic.Div":
@@ -72,6 +73,8 @@ private float eval(string expr)
 }
 unittest
 {
+    import std.math : pow;
+
     assert(eval("1;") == 1.0);
     assert(eval("-1;") == -1.0);
     assert(eval("1+1;") == 2.0);
@@ -104,14 +107,16 @@ unittest
 
     assert(eval("2*3*3-3*3+3*4;") == 21.0);
     assert(eval("2*3*3-3*(3+3*4);") == -27.0);
-}
 
-class InvalidExpressionException : Exception
-{
-    this(string msg, string file = __FILE__, size_t line = __LINE__)
-    {
-        super(msg, file, line, null);
-    }
+    assert(eval("12.34;") == 12.34f);
+    assert(eval("1.234;") == 1.234f);
+    assert(eval("0.987;") == 0.987f);
+
+    assert(eval("2**8;") == 256);
+    assert(eval("10**3;") == 1000);
+    assert(eval("5**0;") == 1);
+    assert(eval("1.56**3.28") == pow(1.56f, 3.28f));
+    //assert(eval("0**0;") == float.nan);
 }
 
 public struct Evaluable(Vars...)
@@ -136,9 +141,10 @@ if(allSatisfy!(isValidVariableName, Vars))
     unittest
     {
         assertNotThrown!InvalidExpressionException(Evaluable!("x", "y")("2*2"));
+        assertNotThrown!InvalidExpressionException(Evaluable!("x", "y")("2**4"));
         assertThrown!InvalidExpressionException(Evaluable!("x", "y")("2y"));
-        assertThrown!InvalidExpressionException(Evaluable!("x", "y")("2**4"));
         assertThrown!InvalidExpressionException(Evaluable!("x", "y")("2^4"));
+        assertThrown!InvalidExpressionException(Evaluable!("x", "y")("x y"));
     }
 
     public float eval(float[Vars.length] evalPoint...)
@@ -152,12 +158,12 @@ if(allSatisfy!(isValidVariableName, Vars))
             replacedExpr = replacedExpr.replace(Vars[i], to!string(evalPoint[i]));
         }
 
-        return aritheval.evaluable.eval(replacedExpr);
+        return arith_eval.evaluable.eval(replacedExpr);
     }
 }
 unittest
 {
-    import std.stdio;
+    import std.math : pow;
 
     auto a = Evaluable!("x", "y", "z")("2*2");
     assert(a.eval(0, 1 ,2) == 4);
@@ -172,10 +178,25 @@ unittest
     assert(c.eval(1, 1) == 5);
     assert(c.eval(2, 3) == 5);
     assert(c.eval(4, 5) == 6);
-    assert(c.eval(8, 3) == 3.5);
+    assert(c.eval(8, 3) == 3.5f);
+    assert(c.eval(12, 7.5f) == 4 / 12.0f + 7.5f);
     assert(c.eval(0, 5) == float.infinity);
+
+    auto d = Evaluable!("x", "y")("(x + y) * x - 3 * 2 * y");
+    assert(d.eval(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
+    assert(d.eval(3, 5) == (3 + 5) * 3 - 3 * 2 * 5);
+
+    auto e = Evaluable!("x", "z")("x**(2*z)");
+    assert(e.eval(1.5f, 1.3f) == pow(1.5f, 2 * 1.3f));
 }
 
+public class InvalidExpressionException : Exception
+{
+    this(string msg, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(msg, file, line, null);
+    }
+}
 
 private enum isValidVariableName(string T) = inPattern(T[0], "a-zA-Z") && countchars(T, "^a-zA-Z0-9_") == 0;
 unittest
