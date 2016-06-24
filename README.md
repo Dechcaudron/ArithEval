@@ -1,1 +1,59 @@
 # ArithEval
+
+**ArithEval** is a minimal arithmetic expression evaluator library for the D programming language. In other words, define a math function as a string depending on as many variables as you want, then evaluate that function giving those variables the values you want.
+
+This library is licensed under the terms of the [GNU GPL3](https://www.gnu.org/licenses/gpl-3.0.html) free software license. Free as in freedom. Also as in free beer. Also as in gluten-free. (*Warning: beer might not be gluten-free*)
+
+Currently, ArithEval uses [Pegged](https://github.com/PhilippeSigaud/Pegged) as its base for parsing math expressions, although this might change in the future.
+
+# How to use
+
+Minimal the library, minimal the tutorial, really. Just instance the `Evaluable` struct from the `arith_eval.evaluable` module and define your function:
+
+```d
+import arith_eval.evaluable;
+
+auto a = Evaluable!("x", "y")("(x + y) * x - 3 * 2 * y");
+assert(a.eval(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
+assert(a.eval(3, 5) == (3 + 5) * 3 - 3 * 2 * 5);
+
+import std.math: pow;
+
+auto b = Evaluable!("x", "z")("x ** (2 * z)");
+assert(b.eval(1.5f, 1.3f) == pow(1.5f, 2 * 1.3f));
+```
+
+`Evaluable`, as you can see, is a template struct that takes the name of its variables as its template parameters, and defines the `eval` method to later substitute those variables in the same order in the original math expression.
+
+`Evaluable` will throw an `InvalidExpressionException` if it isn't able to understand the expression given.
+
+Note that currently *ArithEval* will not check your expressions for variables not specified in the template, and using those should be considered an error, so please be extra careful in that aspect. I'll implement the checking once I have some time.
+
+# Supported operations
+
+Currently, supported math operations are the following:
+
+- `x + y`
+- `x - y`
+- `- x`
+- `x * y`
+- `x / y`
+- `x ** y` (`x` to the power of `y`)
+
+Also parenthesis should work wherever you place them, respecting basic math operation priorities.
+
+If you are missing a specific operation, open an issue or, even better, implement it yourself and submit a PR.
+
+# Limitations
+
+`eval` currently takes `float`s and returns a `float`. No `double` or `real` so far, sorry. If you need it, open issue or PR.
+
+# Add as DUB dependency
+
+Just add the `arith-eval` package as a dependency in your *dub.json* or *dub.sdl* file. For example:
+
+```json
+"dependencies" : {
+        "arith-eval": "~>0.1.0"
+}
+```
