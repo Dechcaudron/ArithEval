@@ -119,10 +119,11 @@ unittest
     //assert(eval("0**0;") == float.nan);
 }
 
-public struct Evaluable(Vars...)
+public alias evaluable(a...) = immutable Evaluable!(a);
+public immutable struct Evaluable(Vars...)
 if(allSatisfy!(isValidVariableName, Vars))
 {
-    immutable string expr;
+    string expr;
 
     this(string expr)
     in
@@ -134,20 +135,21 @@ if(allSatisfy!(isValidVariableName, Vars))
         //TODO: perform runtime checking of variables in the expression
 
         expr ~= ";";
-        enforce!InvalidExpressionException(Arithmetic(expr).successful, "Expression "~expr~" cannot be used.");
+        enforce!InvalidExpressionException(Arithmetic(expr).successful, 
+			"Expression "~expr~" cannot be used.");
 
         this.expr = expr;
     }
     unittest
     {
-        assertNotThrown!InvalidExpressionException(Evaluable!("x", "y")("2*2"));
-        assertNotThrown!InvalidExpressionException(Evaluable!("x", "y")("2**4"));
-        assertThrown!InvalidExpressionException(Evaluable!("x", "y")("2y"));
-        assertThrown!InvalidExpressionException(Evaluable!("x", "y")("2^4"));
-        assertThrown!InvalidExpressionException(Evaluable!("x", "y")("x y"));
+        assertNotThrown!InvalidExpressionException(evaluable!("x", "y")("2*2"));
+        assertNotThrown!InvalidExpressionException(evaluable!("x", "y")("2**4"));
+        assertThrown!InvalidExpressionException(evaluable!("x", "y")("2y"));
+        assertThrown!InvalidExpressionException(evaluable!("x", "y")("2^4"));
+        assertThrown!InvalidExpressionException(evaluable!("x", "y")("x y"));
     }
 
-    public float eval(float[Vars.length] evalPoint...)
+    public float opCall(float[Vars.length] evalPoint...)
     {
         import std.range : iota;
         string replacedExpr = expr;
@@ -165,29 +167,32 @@ unittest
 {
     import std.math : pow;
 
-    auto a = Evaluable!("x", "y", "z")("2*2");
-    assert(a.eval(0, 1 ,2) == 4);
-    assert(a.eval(-1, 0.5, 3) == 4);
+    auto a = evaluable!("x", "y", "z")("2*2");
+    assert(a(0, 1 ,2) == 4);
+    assert(a(-1, 0.5, 3) == 4);
 
-    auto b = Evaluable!("x", "y")("x*y");
-    assert(b.eval(0, 0) == 0);
-    assert(b.eval(2, 2) == 4);
-    assert(b.eval(2, 6) == 12);
+    auto b = evaluable!("x", "y")("x*y");
+    assert(b(0, 0) == 0);
+    assert(b(2, 2) == 4);
+    assert(b(2, 6) == 12);
 
-    auto c = Evaluable!("x", "y")("1/x*4 + y");
-    assert(c.eval(1, 1) == 5);
-    assert(c.eval(2, 3) == 5);
-    assert(c.eval(4, 5) == 6);
-    assert(c.eval(8, 3) == 3.5f);
-    assert(c.eval(12, 7.5f) == 4 / 12.0f + 7.5f);
-    assert(c.eval(0, 5) == float.infinity);
+    auto c = evaluable!("x", "y")("1/x*4 + y");
+    assert(c(1, 1) == 5);
+    assert(c(2, 3) == 5);
+    assert(c(4, 5) == 6);
+    assert(c(8, 3) == 3.5f);
+    assert(c(12, 7.5f) == 4 / 12.0f + 7.5f);
+    assert(c(0, 5) == float.infinity);
 
-    auto d = Evaluable!("x", "y")("(x + y) * x - 3 * 2 * y");
-    assert(d.eval(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
-    assert(d.eval(3, 5) == (3 + 5) * 3 - 3 * 2 * 5);
+    auto d = evaluable!("x", "y")("(x + y) * x - 3 * 2 * y");
+    assert(d(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
+    assert(d(3, 5) == (3 + 5) * 3 - 3 * 2 * 5);
 
-    auto e = Evaluable!("x", "z")("x**(2*z)");
-    assert(e.eval(1.5f, 1.3f) == pow(1.5f, 2 * 1.3f));
+    auto e = evaluable!("x", "z")("x**(2*z)");
+    assert(e(1.5f, 1.3f) == pow(1.5f, 2 * 1.3f));
+    
+    auto f = evaluable!("x")("x + 1");
+    assert(f(2));
 }
 
 public class InvalidExpressionException : Exception

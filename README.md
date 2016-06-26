@@ -13,15 +13,17 @@ Minimal the library, minimal the tutorial, really. Just instance the `Evaluable`
 ```d
 import arith_eval.evaluable;
 
-auto a = Evaluable!("x", "y")("(x + y) * x - 3 * 2 * y");
-assert(a.eval(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
-assert(a.eval(3, 5) == (3 + 5) * 3 - 3 * 2 * 5);
+auto a = evaluable!("x", "y")("(x + y) * x - 3 * 2 * y");
+assert(a(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
+assert(a(3, 5) == (3 + 5) * 3 - 3 * 2 * 5);
 
 import std.math: pow;
 
-auto b = Evaluable!("x", "z")("x ** (2 * z)");
-assert(b.eval(1.5f, 1.3f) == pow(1.5f, 2 * 1.3f));
+auto b = evaluable!("x", "z")("x ** (2 * z)");
+assert(b(1.5f, 1.3f) == pow(1.5f, 2 * 1.3f));
 ```
+
+`evaluable` is a public alias for `immutable Evaluable` (it is an immutable struct).
 
 `Evaluable`, as you can see, is a template struct that takes the name of its variables as its template parameters, and defines the `eval` method to later substitute those variables in the same order in the original math expression.
 
@@ -46,7 +48,7 @@ If you are missing a specific operation, open an issue or, even better, implemen
 
 # Limitations
 
-`eval` currently takes `float`s and returns a `float`. No `double` or `real` so far, sorry. If you need it, open issue or PR.
+`opCall` currently takes `float`s and returns a `float`. No `double` or `real` so far, sorry. If you need it, open issue or PR.
 
 # Add as DUB dependency
 
@@ -54,6 +56,6 @@ Just add the `arith-eval` package as a dependency in your *dub.json* or *dub.sdl
 
 ```json
 "dependencies" : {
-        "arith-eval": "~>0.1.0"
+        "arith-eval": "~>0.2.0"
 }
 ```
