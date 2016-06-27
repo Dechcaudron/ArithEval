@@ -13,19 +13,19 @@ Minimal the library, minimal the tutorial, really. Just instance the `Evaluable`
 ```d
 import arith_eval.evaluable;
 
-auto a = Evaluable!("x", "y")("(x + y) * x - 3 * 2 * y");
+auto a = Evaluable!(int, "x", "y")("(x + y) * x - 3 * 2 * y");
 assert(a(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
 assert(a(3, 5) == (3 + 5) * 3 - 3 * 2 * 5);
 
 import std.math: pow;
 
-auto b = Evaluable!("x", "z")("x ** (2 * z)");
+auto b = Evaluable!(float, "x", "z")("x ** (2 * z)");
 assert(b(1.5f, 1.3f) == pow(1.5f, 2 * 1.3f));
 ```
 
-`Evaluable`, as you can see, is a template struct that takes the name of its variables as its template parameters, and defines the `eval` method to later substitute those variables in the same order in the original math expression.
+`Evaluable`, as you can see, is a template struct that takes the evaluation type and the name of its variables as its template parameters.
 
-`Evaluable` will throw an `InvalidExpressionException` if it isn't able to understand the expression given.
+`Evaluable` will throw an `InvalidExpressionException` if it isn't able to understand the expression given, and an `OverflowException` if it overflows during calculation at a given point for the specified evaluation type.
 
 Note that currently *ArithEval* will not check your expressions for variables not specified in the template, and using those should be considered an error, so please be extra careful in that aspect. I'll implement the checking once I have some time.
 
@@ -44,16 +44,12 @@ Also parenthesis should work wherever you place them, respecting basic math oper
 
 If you are missing a specific operation, open an issue or, even better, implement it yourself and submit a PR.
 
-# Limitations
-
-`opCall` currently takes `float`s and returns a `float`. No `double` or `real` so far, sorry. If you need it, open issue or PR.
-
 # Add as DUB dependency
 
 Just add the `arith-eval` package as a dependency in your *dub.json* or *dub.sdl* file. For example:
 
 ```json
 "dependencies" : {
-        "arith-eval": "~>0.3.0"
+        "arith-eval": "~>0.4.0"
 }
 ```
