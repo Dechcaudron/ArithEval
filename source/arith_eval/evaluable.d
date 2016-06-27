@@ -122,7 +122,7 @@ unittest
 public struct Evaluable(Vars...)
 if(allSatisfy!(isValidVariableName, Vars))
 {
-    immutable string expr;
+    string expr;
 
     this(string expr) inout
     in
@@ -185,9 +185,9 @@ unittest
     assert(c(12, 7.5f) == 4 / 12.0f + 7.5f);
     assert(c(0, 5) == float.infinity);
 
-    auto d = Evaluable!("x", "y")("(x + y) * x - 3 * 2 * y");
-    assert(d(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
-    assert(d(3, 5) == (3 + 5) * 3 - 3 * 2 * 5);
+    c = Evaluable!("x", "y")("(x + y) * x - 3 * 2 * y");
+    assert(c(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
+    assert(c(3, 5) == (3 + 5) * 3 - 3 * 2 * 5);
 
     auto e = Evaluable!("x", "z")("x**(2*z)");
     assert(e(1.5f, 1.3f) == pow(1.5f, 2 * 1.3f));
