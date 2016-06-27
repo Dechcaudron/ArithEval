@@ -142,12 +142,35 @@ if(allSatisfy!(isValidVariableName, Vars))
     unittest
     {
         assertNotThrown!InvalidExpressionException(Evaluable!("x", "y")("2*2"));
-        assertNotThrown!InvalidExpressionException(immutable Evaluable!("x", "y")("2*2"));
-
         assertNotThrown!InvalidExpressionException(Evaluable!("x", "y")("2**4"));
         assertThrown!InvalidExpressionException(Evaluable!("x", "y")("2y"));
         assertThrown!InvalidExpressionException(Evaluable!("x", "y")("2^4"));
         assertThrown!InvalidExpressionException(Evaluable!("x", "y")("x y"));
+    }
+
+    //TODO: surely there must be a way to avoid redefining this method
+    this(string expr) inout shared
+    in
+    {
+        assert(expr !is null);
+    }
+    body
+    {
+        //TODO: perform runtime checking of variables in the expression
+
+        expr ~= ";";
+        enforce!InvalidExpressionException(Arithmetic(expr).successful, 
+                        "Expression "~expr~" cannot be used.");
+
+        this.expr = expr;
+    }
+    unittest
+    {
+        assertNotThrown!InvalidExpressionException(shared Evaluable!("x", "y")("2*2"));
+        assertNotThrown!InvalidExpressionException(shared Evaluable!("x", "y")("2**4"));
+        assertThrown!InvalidExpressionException(shared Evaluable!("x", "y")("2y"));
+        assertThrown!InvalidExpressionException(shared Evaluable!("x", "y")("2^4"));
+        assertThrown!InvalidExpressionException(shared Evaluable!("x", "y")("x y"));
     }
 
     public float opCall(float[Vars.length] evalPoint...) const
@@ -163,6 +186,12 @@ if(allSatisfy!(isValidVariableName, Vars))
 
         return arith_eval.evaluable.eval(replacedExpr);
     }
+
+    public float opCall(float[Vars.length] evalPoint...) const shared
+    {
+        return (cast(Evaluable)this).opCall(evalPoint);
+    }
+
 }
 unittest
 {
@@ -192,8 +221,8 @@ unittest
     auto e = Evaluable!("x", "z")("x**(2*z)");
     assert(e(1.5f, 1.3f) == pow(1.5f, 2 * 1.3f));
     
-    auto f = Evaluable!("x")("x + 1");
-    assert(f(2));
+    auto f = shared Evaluable!("x")("x + 1");
+    assert(f(2) == 3f);
 }
 
 public class InvalidExpressionException : Exception
