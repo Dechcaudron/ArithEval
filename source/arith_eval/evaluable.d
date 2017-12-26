@@ -1,10 +1,11 @@
 module arith_eval.evaluable;
 
-import std.meta : allSatisfy, aliasSeqOf;
-import std.traits : isNumeric;
-import std.string;
+import std.ascii;
 import std.conv : to; // for pegged.grammar mixin
 import std.exception;
+import std.meta : allSatisfy, aliasSeqOf;
+import std.string;
+import std.traits : isNumeric;
 
 import pegged.grammar;
 
@@ -137,12 +138,13 @@ if(isNumeric!EvalType && allSatisfy!(isValidVariableName, Vars))
 
         expr ~= ";";
         enforce!InvalidExpressionException(Arithmetic(expr).successful, 
-                        "Expression "~expr~" cannot be used.");
+                        "Expression " ~ expr ~ " cannot be used.");
 
         this.expr = expr;
     }
     unittest
     {
+        assertNotThrown!InvalidExpressionException(Evaluable!int("5 + 2"));        
         assertNotThrown!InvalidExpressionException(Evaluable!(short, "x", "y")("2*2"));
         assertNotThrown!InvalidExpressionException(Evaluable!(short, "x", "y")("2**4"));
         assertThrown!InvalidExpressionException(Evaluable!(short, "x", "y")("2y"));
@@ -162,7 +164,7 @@ if(isNumeric!EvalType && allSatisfy!(isValidVariableName, Vars))
 
         expr ~= ";";
         enforce!InvalidExpressionException(Arithmetic(expr).successful, 
-                        "Expression "~expr~" cannot be used.");
+                        "Expression " ~ expr ~ " cannot be used.");
 
         this.expr = expr;
     }
@@ -182,7 +184,7 @@ if(isNumeric!EvalType && allSatisfy!(isValidVariableName, Vars))
 
         foreach(i; aliasSeqOf!(iota(0, Vars.length)))
         {
-            import std.array;
+            import std.array : replace;
             replacedExpr = replacedExpr.replace(Vars[i], to!string(evalPoint[i]));
         }
 
@@ -194,7 +196,8 @@ if(isNumeric!EvalType && allSatisfy!(isValidVariableName, Vars))
         }
         catch(ConvOverflowException e)
         {
-            throw new OverflowException("Cannot eval expression " ~ expr ~ " for type " ~ EvalType.stringof ~ " at point " ~ to!string(evalPoint));
+            throw new OverflowException("Cannot eval expression " ~ expr ~ " for type " ~
+                EvalType.stringof ~ " at point " ~ to!string(evalPoint));
         }
         
     }
@@ -208,6 +211,9 @@ if(isNumeric!EvalType && allSatisfy!(isValidVariableName, Vars))
 unittest
 {
     import std.math : pow;
+
+    auto noVariables = Evaluable!int("2 + 3");
+    assert(noVariables() == 5);
 
     auto a = Evaluable!(float, "x", "y", "z")("2*2");
     assert(a(0, 1 ,2) == 4);
@@ -262,7 +268,19 @@ public class OverflowException : Exception
     }
 }
 
-private enum isValidVariableName(string T) = inPattern(T[0], "a-zA-Z") && countchars(T, "^a-zA-Z0-9_") == 0;
+private enum isAlphaNumOrUnderscoreString(string s)
+{
+    foreach(char c; s)
+        if(!c.isAlphaNum && c != '_')
+            return false;
+
+    return true;
+} 
+    
+private enum isValidVariableName(string T) = 
+    T[0].isAlpha &&
+    isAlphaNumOrUnderscoreString(T);
+
 unittest
 {
     assert(isValidVariableName!"x");
