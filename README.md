@@ -53,6 +53,6 @@ Just add the `arith-eval` package as a dependency in your *dub.json* or *dub.sdl
 
 ```json
 "dependencies" : {
-        "arith-eval": "~>0.4.0"
+        "arith-eval": "~>0.4.1"
 }
 ```
