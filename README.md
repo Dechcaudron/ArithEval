@@ -1,6 +1,6 @@
 # ArithEval
 
-**ArithEval** is a minimal arithmetic expression evaluator library for the D programming language. In other words, define a math function as a string depending on as many variables as you want, then evaluate that function giving those variables the values you want.
+**ArithEval** is a minimal arithmetic expression evaluator library for the D programming language. In other words, define a math function as a string depending on as many variables as you want (including none), then evaluate that function giving those variables the values you want.
 
 This library is licensed under the terms of the [GNU GPL3](https://www.gnu.org/licenses/gpl-3.0.html) free software license. Free as in freedom. Also as in free beer. Also as in gluten-free. (*Warning: beer might not be gluten-free*)
 
@@ -8,19 +8,22 @@ Currently, ArithEval uses [Pegged](https://github.com/PhilippeSigaud/Pegged) as 
 
 # How to use
 
-Minimal the library, minimal the tutorial, really. Just instance the `Evaluable` struct from the `arith_eval.evaluable` module and define your function:
+Minimal the library, minimal the tutorial, really. Just instance the `Evaluable` struct from the `arith_eval` package and define your function:
 
 ```d
-import arith_eval.evaluable;
+import arith_eval;
 
-auto a = Evaluable!(int, "x", "y")("(x + y) * x - 3 * 2 * y");
-assert(a(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
-assert(a(3, 5) == (3 + 5) * 3 - 3 * 2 * 5);
+auto constantExpression = Evaluable!int("2 + 5");
+assert(constantExpression() == 7);
+
+auto intEvaluable = Evaluable!(int, "x", "y")("(x + y) * x - 3 * 2 * y");
+assert(intEvaluable(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
+assert(intEvaluable(3, 5) == (3 + 5) * 3 - 3 * 2 * 5);
 
 import std.math: pow;
 
-auto b = Evaluable!(float, "x", "z")("x ** (2 * z)");
-assert(b(1.5f, 1.3f) == pow(1.5f, 2 * 1.3f));
+auto floatEvaluable = Evaluable!(float, "x", "z")("x ** (2 * z)");
+assert(floatEvaluable(1.5f, 1.3f) == pow(1.5f, 2 * 1.3f));
 ```
 
 `Evaluable`, as you can see, is a template struct that takes the evaluation type and the name of its variables as its template parameters.
