@@ -1,11 +1,13 @@
 module arith_eval.evaluable;
 
 import std.ascii;
-import std.conv : to; // for pegged.grammar mixin
+import std.conv : to; 
 import std.exception;
+import std.experimental.checkedint : Checked, Throw;
+import std.format;
 import std.meta : allSatisfy, aliasSeqOf;
 import std.string;
-import std.traits : isNumeric;
+import std.traits : isNumeric, isIntegral, isFloatingPoint;
 
 import pegged.grammar;
 
@@ -27,13 +29,18 @@ Arithmetic:
 `));
 
 private T eval(T)(string expr)
+if (isNumeric!T)
 {
-    import std.math;
+    import std.math : pow;
 
     auto p = Arithmetic(expr);
 
     T value(ParseTree p)
     {
+        static if (isIntegral!T)
+            alias intermediateType = Checked!(T, Throw);
+        else
+            alias intermediateType = T;
         switch (p.name)
         {
             case "Arithmetic":
@@ -41,19 +48,27 @@ private T eval(T)(string expr)
             case "Arithmetic.Whole":
                 return value(p.children[0]);
             case "Arithmetic.Term":
-                T v = 0;
+                intermediateType v;
+                static if (isIntegral!T)
+                    v = cast(T)0;
+                else
+                    v = 0;
                 foreach(child; p.children) v += value(child);
-                return v;
+                return to!T(v);
             case "Arithmetic.Add":
                 return value(p.children[0]);
             case "Arithmetic.Sub":
                 return -value(p.children[0]);
             case "Arithmetic.Factor":
-                T v = 1;
+                intermediateType v;
+                static if (isIntegral!T)
+                    v = cast(T)1;
+                else
+                    v = 1;
                 foreach(child; p.children) v *= value(child);
-                return v;
+                return to!T(v);
             case "Arithmetic.Pow":
-                return to!T(pow(value(p.children[0]), value(p.children[1])));
+                return to!T(value(p.children[0]) ^^ value(p.children[1]));
             case "Arithmetic.Mul":
                 return value(p.children[0]);
             case "Arithmetic.Div":
@@ -177,6 +192,16 @@ if(isNumeric!EvalType && allSatisfy!(isValidVariableName, Vars))
         assertThrown!InvalidExpressionException(shared Evaluable!(short, "x", "y")("x y"));
     }
 
+    /**
+        Evaluates the expression.
+
+        Returns: The value after evaluating the expression (at
+                 the point specified by evalPoint, if the number
+                 of variables is greater than 0).
+
+        Throws: OverflowException if overflow has occurred during
+                the evaluation.
+    */
     public EvalType opCall(EvalType[Vars.length] evalPoint...) const
     {
         import std.range : iota;
@@ -189,31 +214,54 @@ if(isNumeric!EvalType && allSatisfy!(isValidVariableName, Vars))
         }
 
         import std.conv : ConvOverflowException;
+
+        void handleOverflow(Throwable e)
+        {
+            static if (Vars.length == 0)
+                immutable string msg = format("Expression \"%s\" evaluation for type %s overflowed.",
+                                  expr, EvalType.stringof);
+            else
+                immutable string msg = format("Expression \"%s\" evaluation for type %s on point '%s' " ~
+                                  "overflowed.", expr, EvalType.stringof, to!string(evalPoint));
+            throw new OverflowException(msg, e);
+        }
         
         try
         {
-            return arith_eval.evaluable.eval!EvalType(replacedExpr);
+            immutable EvalType evaluation = arith_eval.evaluable.eval!EvalType(replacedExpr);
+            static if (isFloatingPoint!EvalType)
+                if (evaluation > EvalType.max || evaluation < -EvalType.max)
+                    handleOverflow(null);
+            return evaluation;
         }
         catch(ConvOverflowException e)
         {
-            throw new OverflowException("Cannot eval expression " ~ expr ~ " for type " ~
-                EvalType.stringof ~ " at point " ~ to!string(evalPoint));
+            handleOverflow(e);
         }
-        
+        catch(Throw.CheckFailure e)
+        {
+            handleOverflow(e);
+        }
+
+        assert(0); // Required by compiler
     }
 
     public EvalType opCall(EvalType[Vars.length] evalPoint...) const shared
     {
         return (cast(Evaluable)this).opCall(evalPoint);
     }
-
 }
+
 unittest
 {
     import std.math : pow;
+    import std.stdio : writefln;
 
     auto noVariables = Evaluable!int("2 + 3");
     assert(noVariables() == 5);
+
+    auto overflowsInteger = Evaluable!ubyte("250 + 10");
+    assertThrown!OverflowException(overflowsInteger());
 
     auto a = Evaluable!(float, "x", "y", "z")("2*2");
     assert(a(0, 1 ,2) == 4);
@@ -230,7 +278,6 @@ unittest
     assert(c(4, 5) == 6);
     assert(c(8, 3) == 3.5f);
     assert(c(12, 7.5f) == 4 / 12.0f + 7.5f);
-    assert(c(0, 5) == float.infinity);
 
     auto c2 = Evaluable!(int, "x", "y")("(x + y) * x - 3 * 2 * y");
     assert(c2(2, 2) == (2 + 2) * 2 - 3 * 2 * 2);
@@ -254,18 +301,12 @@ unittest
 
 public class InvalidExpressionException : Exception
 {
-    this(string msg, string file = __FILE__, size_t line = __LINE__)
-    {
-        super(msg, file, line, null);
-    }
+    mixin basicExceptionCtors;
 }
 
 public class OverflowException : Exception
 {
-    this(string msg, string file = __FILE__, size_t line = __LINE__)
-    {
-        super(msg, file, line, null);
-    }
+    mixin basicExceptionCtors;
 }
 
 private enum isAlphaNumOrUnderscoreString(string s)
