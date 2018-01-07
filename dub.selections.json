@@ -1,0 +1,7 @@
+{
+	"fileVersion": 1,
+	"versions": {
+		"pegged": "0.4.2",
+		"unit-threaded": "0.7.35"
+	}
+}
