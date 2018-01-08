@@ -3,9 +3,7 @@
 **ArithEval** is a minimal arithmetic expression evaluator library for the D programming language. In other words, define a math function as a string depending on as many variables as you want (including none), then evaluate that function giving those variables the values you want. It is **NOT** designed
 to be efficient, just easy to use. Bear this in mind if your application requires time-sensitive evaluations.
 
-This library is licensed under the terms of the [GNU GPL3](https://www.gnu.org/licenses/gpl-3.0.html) free software license. Free as in freedom. Also as in free beer. Also as in gluten-free. (*Warning: beer might not be gluten-free*)
-
-Currently, ArithEval uses [Pegged](https://github.com/PhilippeSigaud/Pegged) as its base for parsing math expressions, although this might change in the future.
+This library is licensed under the [MIT](https://opensource.org/licenses/MIT) software license.
 
 # How to use
 
@@ -56,3 +54,8 @@ Just add the `arith-eval` package as a dependency in your *dub.json* or *dub.sdl
         "arith-eval": "~>0.5.0"
 }
 ```
+
+# Attributions
+The following pieces of work make this library possible:
+- [Pegged](https://github.com/PhilippeSigaud/Pegged), by *Philippe Sigaud*, released under the [Boost](http://www.boost.org/LICENSE_1_0.txt) license. Used for input parsing.
+- [unit-threaded](https://github.com/atilaneves/unit-threaded), by *Atila Neves*, released under the [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause) license. Used for the testing of the library.

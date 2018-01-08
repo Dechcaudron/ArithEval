@@ -1,8 +1,8 @@
 {
     "name" : "arith-eval",
-    "description" : "A minimal math exoression evaluation library.",
+    "description" : "A minimal math expression evaluation library.",
     "authors" : ["Héctor Barreras Almarcha @Dechcaudron"],
-    "license" : "GPL-3.0",
+    "license" : "MIT",
 
     "dependencies" : {
             "pegged": "~>0.4.2"
